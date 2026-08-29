@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wie lange hält es noch? – Eine statistische Einordnung</title>
+<meta name="description" content="Gib Parameter deiner Beziehung ein und erhalte eine statistische Einordnung auf Basis eines Survival-Analysis-Modell-Ensembles.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<!-- ============================================================
+     WERBEFLAECHE: Kopf (z.B. Google AdSense Auto-Ads Script)
+     Nach AdSense-Freischaltung hier das <script async src="...adsbygoogle.js?client=ca-pub-XXXX">
+     einfuegen. Siehe DEPLOY.md.
+     ============================================================ -->
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="wrap topbar__inner">
+      <span class="wordmark">liebes<em>stat</em>istik</span>
+      <span class="topbar__tag">ein statistisches Experiment, kein Orakel</span>
+    </div>
+  </header>
+
+  <!-- WERBEFLAECHE: Banner unter der Kopfzeile (z.B. 728x90 / responsive) -->
+  <div class="ad-slot ad-slot--banner wrap" id="ad-slot-top">
+    <span class="ad-slot__label">Anzeige</span>
+    <!-- <ins class="adsbygoogle" ...></ins> -->
+  </div>
+
+  <section class="hero">
+    <div class="wrap hero__inner">
+      <div class="hero__text">
+        <p class="eyebrow">Survival Analysis · Cox-PH · Ensemble aus 4 Modellen</p>
+        <h1>Wie lange hält eine Beziehung&nbsp;– statistisch betrachtet?</h1>
+        <p class="hero__sub">
+          Basierend auf echten Konfliktverhaltens-Daten von 170 Paaren (UCI
+          Divorce Predictors Scale) plus kalibrierten Struktur- und
+          Zeitannahmen. Trage deine eigenen Werte ein und sieh, wo deine
+          Kurve im Vergleich zum Durchschnitt verläuft.
+        </p>
+      </div>
+      <div class="hero__chart-wrap">
+        <canvas id="heroChart" height="260"></canvas>
+        <p class="chart-caption">Populationsdurchschnitt (n=170) – bis du unten deine Werte einträgst</p>
+      </div>
+    </div>
+  </section>
+
+  <main class="wrap main-grid">
+
+    <form id="predictForm" class="panel form-panel" autocomplete="off">
+      <h2>Deine Angaben</h2>
+
+      <fieldset>
+        <legend>Konflikt &amp; Bindung <span class="hint">(0 = gar nicht, 10 = sehr stark)</span></legend>
+
+        <label class="field">
+          <span>Wie häufig kommt es zu Kritik, Streit oder Rückzug?</span>
+          <input type="range" min="0" max="10" step="1" value="3" id="conflict" name="conflict">
+          <output for="conflict" id="conflict-out">3</output>
+        </label>
+
+        <label class="field">
+          <span>Wie stark fühlt ihr euch verbunden (Werte, Ziele, Harmonie)?</span>
+          <input type="range" min="0" max="10" step="1" value="7" id="bonding" name="bonding">
+          <output for="bonding" id="bonding-out">7</output>
+        </label>
+
+        <label class="field">
+          <span>Wie zufrieden bist du insgesamt – unabhängig von Konflikt/Bindung?</span>
+          <input type="range" min="0" max="10" step="1" value="7" id="satisfaction" name="satisfaction">
+          <output for="satisfaction" id="satisfaction-out">7</output>
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Struktur</legend>
+
+        <div class="field-row">
+          <label class="field field--compact">
+            <span>Dein Alter</span>
+            <input type="number" min="16" max="100" value="30" id="age_a" name="age_a" required>
+          </label>
+          <label class="field field--compact">
+            <span>Alter der/des Partnerin/Partners</span>
+            <input type="number" min="16" max="100" value="30" id="age_b" name="age_b" required>
+          </label>
+        </div>
+
+        <label class="field">
+          <span>Gemeinsames monatliches Nettoeinkommen (EUR)</span>
+          <input type="number" min="0" max="100000" step="50" value="3000" id="income" name="income" required>
+        </label>
+
+        <div class="field-row">
+          <label class="field field--compact">
+            <span>Dein Bildungsabschluss</span>
+            <select id="education_a" name="education_a">
+              {% for opt in education_options %}
+              <option value="{{ opt }}" {% if opt == 'Abitur' %}selected{% endif %}>{{ opt }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label class="field field--compact">
+            <span>Abschluss der/des Partnerin/Partners</span>
+            <select id="education_b" name="education_b">
+              {% for opt in education_options %}
+              <option value="{{ opt }}" {% if opt == 'Abitur' %}selected{% endif %}>{{ opt }}</option>
+              {% endfor %}
+            </select>
+          </label>
+        </div>
+
+        <div class="field-row field-row--checks">
+          <label class="checkbox"><input type="checkbox" id="married" name="married"> Verheiratet</label>
+          <label class="checkbox"><input type="checkbox" id="cohabiting" name="cohabiting" checked> Lebt zusammen</label>
+          <label class="checkbox"><input type="checkbox" id="has_children" name="has_children"> Gemeinsame Kinder</label>
+        </div>
+
+        <label class="field" id="n_children_field" style="display:none">
+          <span>Anzahl gemeinsamer Kinder</span>
+          <input type="number" min="1" max="10" value="1" id="n_children" name="n_children">
+        </label>
+
+        <label class="field">
+          <span>Gemeinsame Aktivitäten pro Monat</span>
+          <input type="number" min="0" max="60" value="6" id="activities" name="activities" required>
+        </label>
+
+        <label class="field">
+          <span>Bereits gelebte Beziehungsdauer (Jahre) <span class="hint">– für bedingte Vorhersage</span></span>
+          <input type="number" min="0" max="80" step="0.5" value="2" id="already_together_years" name="already_together_years">
+        </label>
+      </fieldset>
+
+      <button type="submit" class="btn-primary">Kurve berechnen</button>
+    </form>
+
+    <div class="panel result-panel" id="resultPanel">
+      <h2>Ergebnis</h2>
+      <p class="result-placeholder">Fülle das Formular aus und klicke auf "Kurve berechnen", um deine Ensemble-Schätzung zu sehen.</p>
+
+      <div id="resultContent" style="display:none">
+        <div class="stat-grid" id="statGrid"></div>
+
+        <div id="conditionalBlock" class="conditional-block" style="display:none"></div>
+
+        <details class="transparency">
+          <summary>Einzelmodelle je Zeithorizont anzeigen</summary>
+          <table id="transparencyTable"></table>
+        </details>
+
+        <p class="model-meta" id="modelMeta"></p>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- WERBEFLAECHE: Rectangle, z.B. 300x250, gut sichtbar nach dem Ergebnis -->
+  <div class="ad-slot ad-slot--rectangle wrap" id="ad-slot-mid">
+    <span class="ad-slot__label">Anzeige</span>
+    <!-- <ins class="adsbygoogle" ...></ins> -->
+  </div>
+
+  <section class="disclaimer wrap">
+    <h3>Was diese Zahlen sind – und was nicht</h3>
+    <p>
+      Dieses Modell-Ensemble (Cox-Proportional-Hazards, logistische
+      Regression, Random Forest, Gradient Boosting) basiert auf einer
+      kleinen Stichprobe (n=170) mit größtenteils simulierten Struktur- und
+      Zeitvariablen und einer moderaten Modellgüte (C-Index / ROC-AUC
+      ca. 0.65–0.70). Es handelt sich um eine methodische Demonstration
+      eines Survival-Analysis-Workflows – <strong>nicht</strong> um ein
+      klinisch oder wissenschaftlich validiertes Vorhersageinstrument für
+      eine reale, individuelle Beziehung. Menschliche Beziehungen hängen von
+      weit mehr Faktoren ab, als sich in einem Formular erfassen lassen.
+      Nimm das Ergebnis als spielerische statistische Einordnung, nicht als
+      Prognose oder Beziehungsratschlag.
+    </p>
+  </section>
+
+  <footer class="site-footer">
+    <div class="wrap footer__inner">
+      <span>Datengrundlage: UCI Divorce Predictors Data Set (Yöntem et al., 2019) + simulierte Struktur-/Zeitvariablen.</span>
+    </div>
+    <!-- WERBEFLAECHE: Footer-Leaderboard -->
+    <div class="ad-slot ad-slot--banner wrap" id="ad-slot-footer">
+      <span class="ad-slot__label">Anzeige</span>
+      <!-- <ins class="adsbygoogle" ...></ins> -->
+    </div>
+  </footer>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

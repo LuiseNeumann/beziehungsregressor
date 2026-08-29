@@ -1,0 +1,32 @@
+
+FAZIT / ZUSAMMENFASSUNG DER ERGEBNISSE
+=======================================
+
+Datengrundlage: 170 Paare (echte DPS-Konflikt-/Bindungsdaten, UCI ML
+Repository), ergaenzt um simulierte, aber literaturkonform kalibrierte
+Struktur- und Zeitvariablen.
+
+1. Beziehungsstabilitaet insgesamt (Kaplan-Meier):
+   - Wahrscheinlichkeit, nach 5 Jahren noch zusammen zu sein: 74.1%
+   - Wahrscheinlichkeit, nach 10 Jahren noch zusammen zu sein: 53.5%
+
+2. Staerkster Risikofaktor (Cox-PH, hoechste Hazard Ratio):
+   - conflict_index
+
+3. Staerkster protektiver Faktor (Cox-PH, niedrigste Hazard Ratio):
+   - married
+
+4. Modellguete:
+   - Cox-PH C-Index sowie ROC-AUC der Vergleichsmodelle (log. Regression,
+     Random Forest, Gradient Boosting) liegen im Bereich moderater
+     Vorhersagekraft (deutlich > Zufallsniveau, aber weit von perfekter
+     Vorhersage entfernt) -- konsistent mit der in der Projektbeschreibung
+     erwarteten "probabilistischen statt deterministischen" Einschaetzung.
+
+5. Wichtigster methodischer Vorbehalt:
+   Die Zeitvariable ist in diesem Projekt SIMULIERT, kalibriert auf realen
+   Konfliktverhaltens-Daten. Fuer eine belastbare externe Validitaet
+   waeren echte Laengsschnittdaten mit dokumentiertem Beziehungsende
+   erforderlich (siehe 01_data_preparation.py, Docstring).
+
+Alle Zahlenwerte und Plots liegen im Ordner 'output/' vor.
